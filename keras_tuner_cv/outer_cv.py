@@ -23,10 +23,14 @@ class OuterCV:
             self._build_model = kwargs.get("hypermodel")
         self._outer_cv = outer_cv
         self._tuners = []
+        self._output_dirs = []
         for i in range(outer_cv.get_n_splits()):
             copied_kwargs = copy.copy(kwargs)
             copied_kwargs["directory"] = os.path.join(
                 kwargs["directory"], "outer_cv_" + str(i)
+            )
+            self._output_dirs.append(
+                os.path.join(copied_kwargs["directory"], copied_kwargs["project_name"])
             )
             self._tuners.append(tuner_class(*args, **copied_kwargs))
         self._verbose = True
@@ -94,7 +98,20 @@ class OuterCV:
             copied_args, copied_kwargs = self._compute_training_args(
                 x_train, y_train, *args, **kwargs
             )
+            model_path = os.path.join(self._output_dirs[split], "best_model")
+            if not "callbacks" in copied_kwargs:
+                copied_kwargs["callbacks"] = []
+            copied_kwargs["callbacks"].append(
+                tuner_utils.SaveBestEpoch(
+                    objective=tuner.oracle.objective,
+                    filepath=model_path,
+                )
+            )
             model.fit(*copied_args, **copied_kwargs)
+
+            # Restore best weight according to validation score
+            model = self._build_model(best_hps)
+            model.load_weights(model_path).expect_partial()
 
             # Compute training score
             result = self._evaluate(model, copied_args[0], copied_args[1])
