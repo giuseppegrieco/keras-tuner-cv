@@ -32,6 +32,7 @@ def inner_cv(
             *args,
             save_history=False,
             save_output=False,
+            restore_best=True,
             **kwargs,
         ):
             """TunerCV constructor.
@@ -43,6 +44,7 @@ def inner_cv(
             self._inner_cv = inner_cv
             self._save_history = save_history
             self._save_output = save_output
+            self._restore_best = restore_best
             self._verbose = True
 
         def search(self, *fit_args, **fit_kwargs):
@@ -162,19 +164,20 @@ def inner_cv(
                     copied_kwargs["callbacks"] = callbacks
 
                     # Build and train the model
-                    history = self._build_and_fit_model(
+                    history, model = self._build_and_fit_model(
                         trial, *copied_args, **copied_kwargs
                     )
 
-                    # Load the best epoch according to objective function
-                    model = self._try_build(trial.hyperparameters)
-                    model.load_weights(
-                        self._get_checkpoint_fname(trial.trial_id)
-                        + "_"
-                        + str(execution)
-                        + "_"
-                        + str(split)
-                    ).expect_partial()
+                    if self._restore_best:
+                        # Load the best epoch according to objective function
+                        model = self._try_build(trial.hyperparameters)
+                        model.load_weights(
+                            self._get_checkpoint_fname(trial.trial_id)
+                            + "_"
+                            + str(execution)
+                            + "_"
+                            + str(split)
+                        ).expect_partial()
 
                     trial_path = self.get_trial_dir(trial.trial_id)
                     # Save the history if requested
@@ -274,7 +277,7 @@ def inner_cv(
         def _build_and_fit_model(self, trial, *args, **kwargs):
             hp = trial.hyperparameters
             model = self._try_build(hp)
-            return self.hypermodel.fit(hp, model, *args, **kwargs)
+            return self.hypermodel.fit(hp, model, *args, **kwargs), model
 
         def __save_output(self, model, x, filename):
             y = model.predict(
