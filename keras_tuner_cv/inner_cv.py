@@ -27,6 +27,7 @@ def inner_cv(
 
         def __init__(
             self,
+            hypermodel,
             inner_cv: BaseCrossValidator,
             *args,
             save_history=False,
@@ -38,7 +39,7 @@ def inner_cv(
             Args:
                 cv (BaseCrossValidator): instance of cross validator to use.
             """
-            super(InnerCV, self).__init__(*args, **kwargs)
+            super(InnerCV, self).__init__(hypermodel, *args, **kwargs)
             self._inner_cv = inner_cv
             self._save_history = save_history
             self._save_output = save_output
