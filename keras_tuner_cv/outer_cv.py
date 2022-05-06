@@ -65,7 +65,7 @@ class OuterCV:
             tuner = self._tuners[split]
             tuner.search(*copied_args, **copied_kwargs)
 
-    def evaluate(self, *args, **kwargs):
+    def evaluate(self, *args, restore_best=False, **kwargs):
         if "verbose" in kwargs:
             self._verbose = kwargs.get("verbose")
 
@@ -98,20 +98,22 @@ class OuterCV:
             copied_args, copied_kwargs = self._compute_training_args(
                 x_train, y_train, *args, **kwargs
             )
-            model_path = os.path.join(self._output_dirs[split], "best_model")
-            if not "callbacks" in copied_kwargs:
-                copied_kwargs["callbacks"] = []
-            copied_kwargs["callbacks"].append(
-                tuner_utils.SaveBestEpoch(
-                    objective=tuner.oracle.objective,
-                    filepath=model_path,
+            if restore_best:
+                model_path = os.path.join(self._output_dirs[split], "best_model")
+                if not "callbacks" in copied_kwargs:
+                    copied_kwargs["callbacks"] = []
+                copied_kwargs["callbacks"].append(
+                    tuner_utils.SaveBestEpoch(
+                        objective=tuner.oracle.objective,
+                        filepath=model_path,
+                    )
                 )
-            )
             model.fit(*copied_args, **copied_kwargs)
 
             # Restore best weight according to validation score
-            model = self._build_model(best_hps)
-            model.load_weights(model_path).expect_partial()
+            if restore_best:
+                model = self._build_model(best_hps)
+                model.load_weights(model_path).expect_partial()
 
             # Compute training score
             result = self._evaluate(model, copied_args[0], copied_args[1])
