@@ -137,6 +137,9 @@ class OuterCV:
 
         return result
 
+    def get_tuners(self):
+        return self._tuners
+
     def get_best_hparams(self):
         results = []
         for i in range(self._outer_cv.get_n_splits()):
