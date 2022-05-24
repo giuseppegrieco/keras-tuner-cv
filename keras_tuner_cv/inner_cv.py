@@ -322,6 +322,6 @@ def inner_cv(
                         )
                     executions.append(model)
                 models.append(executions if len(executions) > 1 else executions[0])
-            return model
+            return models
 
     return InnerCV
