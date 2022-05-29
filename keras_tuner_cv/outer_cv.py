@@ -74,7 +74,7 @@ class OuterCV:
             # Training split and execute search
             if self._multiprocess and split != self._outer_cv.get_n_splits() - 1:
                 process = Process(
-                    self._execute_inner_search,
+                    target=self._execute_inner_search,
                     args=(
                         self._tuners[split],
                         X[train_index],
