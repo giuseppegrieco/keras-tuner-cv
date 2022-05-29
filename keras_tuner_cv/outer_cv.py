@@ -9,9 +9,18 @@ from keras_tuner.engine import tuner_utils
 
 from keras_tuner_cv.utils import get_metrics_std_dict
 
+from multiprocessing import Process
+
 
 class OuterCV:
-    def __init__(self, outer_cv: BaseCrossValidator, tuner_class, *args, **kwargs):
+    def __init__(
+        self,
+        outer_cv: BaseCrossValidator,
+        tuner_class,
+        *args,
+        multiprocess=False,
+        **kwargs,
+    ):
         """OuterCV constructor.
 
         Args:
@@ -35,6 +44,15 @@ class OuterCV:
             self._tuners.append(tuner_class(*args, **copied_kwargs))
         self._verbose = True
         self.random_state = None
+        self._multiprocess = multiprocess
+
+    def _execute_inner_search(self, tuner, x_train, y_train, args, kwargs):
+        copied_args, copied_kwargs = self._compute_training_args(
+            x_train, y_train, *args, **kwargs
+        )
+
+        # Hyperparameter optimization
+        tuner.search(*copied_args, **copied_kwargs)
 
     def search(self, *args, **kwargs):
         if "verbose" in kwargs:
@@ -53,17 +71,23 @@ class OuterCV:
                     + "\n"
                 )
 
-            # Training split
-            x_train = X[train_index]
-            y_train = Y[train_index]
-
-            copied_args, copied_kwargs = self._compute_training_args(
-                x_train, y_train, *args, **kwargs
-            )
-
-            # Hyperparameter optimization
-            tuner = self._tuners[split]
-            tuner.search(*copied_args, **copied_kwargs)
+            # Training split and execute search
+            if self._multiprocess and split != self._outer_cv.get_n_splits() - 1:
+                process = Process(
+                    self._execute_inner_search,
+                    args=(
+                        self._tuners[split],
+                        X[train_index],
+                        Y[train_index],
+                        args,
+                        kwargs,
+                    ),
+                )
+                process.start()
+            else:
+                self._execute_inner_search(
+                    self._tuners[split], X[train_index], Y[train_index], args, kwargs
+                )
 
     def evaluate(self, *args, restore_best=False, **kwargs):
         if "verbose" in kwargs:
