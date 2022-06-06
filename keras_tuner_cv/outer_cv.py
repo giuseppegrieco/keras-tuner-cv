@@ -96,6 +96,8 @@ class OuterCV:
         X = args[0]
         Y = args[1]
 
+        epochs = kwargs.get("epochs")
+
         results = []
         for split, (train_index, test_index) in enumerate(self._outer_cv.split(X, Y)):
             if self._verbose:
@@ -132,6 +134,8 @@ class OuterCV:
                         filepath=model_path,
                     )
                 )
+            if isinstance(epochs, list):
+                copied_kwargs["epochs"] = epochs[split]
             model.fit(*copied_args, **copied_kwargs)
 
             # Restore best weight according to validation score
