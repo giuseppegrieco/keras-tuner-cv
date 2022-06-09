@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/478066605.svg)](https://zenodo.org/badge/latestdoi/478066605)
+
 # Keras Tuner Cross Validation
 Extension for keras tuner that adds a set of classes to implement cross validation methodologies.
 
