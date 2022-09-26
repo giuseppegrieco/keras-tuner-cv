@@ -76,7 +76,7 @@ def inner_cv(
                     )
                 else:
                     metrics = tuner_utils.convert_to_metrics_dict(
-                        results, self.oracle.objective, "Tuner.run_trial()"
+                        results, self.oracle.objective
                     )
                     metrics.update(get_metrics_std_dict(results))
                     self.oracle.update_trial(
