@@ -16,9 +16,9 @@ def get_metrics_std_dict(metrics_dicts):
     return std_metrics
 
 
-def pd_inner_cv_get_result(tuner):
-    num_trials = tuner.oracle.max_trials
+def pd_inner_cv_get_result(tuner,num_trials=10):
     best_trials = tuner.oracle.get_best_trials(num_trials)
+    num_trials = min(num_trials,len(best_trials))
     model_results = [i for i in range(num_trials)]
     for i in range(num_trials):
         trial = best_trials[i]
