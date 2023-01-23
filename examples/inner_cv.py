@@ -37,8 +37,8 @@ def build_model(hp):
 
 
 tuner = inner_cv(RandomSearch)(
-    KFold(n_splits=5, random_state=12345, shuffle=True),
     build_model,
+    KFold(n_splits=5, random_state=12345, shuffle=True),
     save_output=True,
     save_history=True,
     objective=Objective("val_accuracy", direction="max"),
