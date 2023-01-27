@@ -17,7 +17,7 @@ from keras_tuner_cv.utils import get_metrics_std_dict
 
 
 def inner_cv(
-    superclass: Tuner,
+        superclass: Tuner,
 ):
     class InnerCV(superclass):
         """
@@ -26,14 +26,15 @@ def inner_cv(
         """
 
         def __init__(
-            self,
-            hypermodel,
-            inner_cv: BaseCrossValidator,
-            *args,
-            save_history=False,
-            save_output=False,
-            restore_best=True,
-            **kwargs,
+                self,
+                hypermodel,
+                inner_cv: BaseCrossValidator,
+                *args,
+                save_history=False,
+                save_output=False,
+                restore_best=True,
+                preprocessor=None,
+                **kwargs,
         ):
             """TunerCV constructor.
 
@@ -46,6 +47,7 @@ def inner_cv(
             self._save_output = save_output
             self._restore_best = restore_best
             self._verbose = True
+            self._preprocessor = preprocessor
 
         def search(self, *fit_args, **fit_kwargs):
             if "verbose" in fit_kwargs:
@@ -86,23 +88,50 @@ def inner_cv(
                 self.on_trial_end(trial)
             self.on_search_end()
 
+        @staticmethod
+        def preprocess_data(x, preprocessor, fit_transform):
+            if preprocessor is None:
+                return x
+            if fit_transform:
+                if isinstance(preprocessor, tf.keras.layers.Layer):
+                    preprocessor.adapt(x)
+                    return preprocessor(x)
+                return preprocessor.fit_transform(x)
+            if isinstance(preprocessor, tf.keras.layers.Layer):
+                return preprocessor(x)
+            return preprocessor.transform(x)
+
+        def _prepare_data(self, x, idx, fit_transorm):
+            if isinstance(x, list):
+                x_new = [i[idx] for i in x]
+                if self._preprocessor is not None:
+                    x_new = [self.preprocess_data(x_new[i], self._preprocessor[i], fit_transorm) for i in
+                             range(len(self._preprocessor))]
+            else:
+                x_new = x[idx]
+                if self._preprocessor is not None:
+                    x_new = self.preprocess_data(x_new, self._preprocessor, fit_transorm)
+            return x_new
+
         def run_trial(self, trial, *args, **kwargs):
             original_callbacks = kwargs.pop("callbacks", [])
-
             X = args[0]
             Y = args[1]
-
+            if isinstance(X, list):
+                n_sample = len(X[0])
+            else:
+                n_sample = len(X)
             # Run the training process multiple times.
             histories = []
             for execution in range(self.executions_per_trial):
                 # Run the training over different splits.
-                for split, (train_index, val_index) in enumerate(
-                    self._inner_cv.split(X, Y)
+                for split, (train_index, test_index) in enumerate(
+                        self._inner_cv.split(range(n_sample), Y)
                 ):
                     if self._verbose:
                         tf.get_logger().info(
                             "\n" + "-" * 30 + "\n"
-                            f"Inner Cross-Validation {split + 1}/{self._inner_cv.get_n_splits()}"
+                                              f"Inner Cross-Validation {split + 1}/{self._inner_cv.get_n_splits()}"
                             + "\n"
                             + "-" * 30
                             + "\n"
@@ -112,7 +141,7 @@ def inner_cv(
                     copied_kwargs = copy.copy(kwargs)
 
                     # Get training set
-                    x_train = X[train_index]
+                    x_train = self._prepare_data(X, train_index, True)
                     y_train = Y[train_index]
                     # Set the training set
                     for arg in args:
@@ -121,23 +150,23 @@ def inner_cv(
                     copied_args[1] = y_train
                     copied_args = tuple(arg for arg in copied_args)
                     # If requested it sets full batch for training
-                    if "batch_size" in kwargs and (
-                        kwargs["batch_size"] == "full-batch"
-                        or kwargs["batch_size"] > len(x_train)
-                    ):
-                        copied_kwargs["batch_size"] = len(x_train)
+                    # if "batch_size" in kwargs and (
+                    #         kwargs["batch_size"] == "full-batch"
+                    #         or kwargs["batch_size"] > len(x_train)
+                    # ):
+                    #     copied_kwargs["batch_size"] = len(x_train)
 
                     # Get the validation set
-                    x_val = X[val_index]
-                    y_val = Y[val_index]
+                    x_test = self._prepare_data(X, test_index, False)
+                    y_test = Y[test_index]
                     # Set the validation set
-                    copied_kwargs["validation_data"] = [x_val, y_val]
+                    copied_kwargs["validation_data"] = [x_test, y_test]
                     # If requested it sets full batch for validation
-                    if "validation_batch_size" in kwargs and (
-                        kwargs["validation_batch_size"] == "full-batch"
-                        or kwargs["validation_batch_size"] > len(x_val)
-                    ):
-                        copied_kwargs["validation_batch_size"] = len(x_val)
+                    # if "validation_batch_size" in kwargs and (
+                    #         kwargs["validation_batch_size"] == "full-batch"
+                    #         or kwargs["validation_batch_size"] > len(x_test)
+                    # ):
+                    #     copied_kwargs["validation_batch_size"] = len(x_test)
 
                     # -------------------------------------------------------
                     # Callbacks
@@ -155,10 +184,10 @@ def inner_cv(
                         tuner_utils.SaveBestEpoch(
                             objective=self.oracle.objective,
                             filepath=self._get_checkpoint_fname(trial.trial_id)
-                            + "_"
-                            + str(execution)
-                            + "_"
-                            + str(split),
+                                     + "_"
+                                     + str(execution)
+                                     + "_"
+                                     + str(split),
                         )
                     )
                     copied_kwargs["callbacks"] = callbacks
@@ -199,7 +228,7 @@ def inner_cv(
                         )
                         self.__save_output(
                             model,
-                            x_val,
+                            x_test,
                             self.__get_filename_path(
                                 trial_path, "validation", ".npy", execution, split
                             ),
@@ -216,9 +245,9 @@ def inner_cv(
 
                     # Evaluate validation performance on best epoch
                     val_res = model.evaluate(
-                        x_val,
-                        y_val,
-                        batch_size=len(x_val),
+                        x_test,
+                        y_test,
+                        batch_size=len(x_test),
                         return_dict=True,
                         verbose=self._display.verbose,
                     )
@@ -228,7 +257,7 @@ def inner_cv(
 
                     # Append training and validation scores to the histories
                     histories.append(obj_value)
-            # It will returns an array of dictionary, note by default keras-tuner
+            # It will return an array of dictionary, note by default keras-tuner
             # will compute an average. This average is therefore the average of the
             # scores across the folds.
             return histories
@@ -246,9 +275,9 @@ def inner_cv(
                 executions = []
                 for execution in range(self.executions_per_trial):
                     with open(
-                        self.__get_filename_path(
-                            trial_path, "history", ".json", execution, split
-                        )
+                            self.__get_filename_path(
+                                trial_path, "history", ".json", execution, split
+                            )
                     ) as fp:
                         executions.append(json.load(fp))
                 histories.append(executions if len(executions) > 1 else executions[0])
@@ -286,15 +315,15 @@ def inner_cv(
                 verbose=self._display.verbose,
             )
             with open(
-                filename,
-                "wb",
+                    filename,
+                    "wb",
             ) as fp:
                 np.save(fp, y)
 
         def __save_history(self, history, filename):
             with open(
-                filename,
-                "w",
+                    filename,
+                    "w",
             ) as fp:
                 json.dump(history.history, fp)
 
@@ -310,7 +339,7 @@ def inner_cv(
                 executions = []
                 for execution in range(self.executions_per_trial):
                     model = self._try_build(trial.hyperparameters)
-                    # Reload best checkpoint.
+                    # Reload the best checkpoint.
                     # Only load weights to avoid loading `custom_objects`.
                     with maybe_distribute(self.distribution_strategy):
                         model.load_weights(
