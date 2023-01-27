@@ -34,6 +34,7 @@ def inner_cv(
                 save_output=False,
                 restore_best=True,
                 preprocessor=None,
+                eval_batch_size=None,
                 **kwargs,
         ):
             """TunerCV constructor.
@@ -48,6 +49,7 @@ def inner_cv(
             self._restore_best = restore_best
             self._verbose = True
             self._preprocessor = preprocessor
+            self._eval_batch_size = eval_batch_size
 
         def search(self, *fit_args, **fit_kwargs):
             if "verbose" in fit_kwargs:
@@ -245,7 +247,7 @@ def inner_cv(
                     obj_value = model.evaluate(
                         x_train,
                         y_train,
-                        batch_size=len(x_train),
+                        batch_size=self._eval_batch_size,
                         return_dict=True,
                         verbose=self._verbose,
                     )
@@ -261,7 +263,7 @@ def inner_cv(
                     val_res = model.evaluate(
                         x_test,
                         y_test,
-                        batch_size=len(x_test),
+                        batch_size=self._eval_batch_size,
                         return_dict=True,
                         verbose=self._display.verbose,
                     )
