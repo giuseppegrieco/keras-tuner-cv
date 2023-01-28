@@ -13,7 +13,7 @@ Here is the list of implemented methodologies and how to use them!
 ### Outer Cross Validation
 
 ```python
-from keras_tuner_cv.outer_cv import OuterCV
+from keras_tuner_cv import OuterCV
 
 from keras_tuner.tuners import RandomSearch
 
@@ -33,18 +33,20 @@ outer_cv = OuterCV(
 )
 ```
 ### Inner Cross Validation
+
 ```python
-from keras_tuner_cv.outer_cv import OuterCV
+import keras.layers
+from keras_tuner_cv import inner_cv
 
 from keras_tuner.tuners import RandomSearch
 
 from sklearn.model_selection import KFold
 
 cv = KFold(n_splits=5, random_state=12345, shuffle=True),
-    
+
 # You can use any class extending:
 # keras_tuner.engine.tuner.Tuner, e.g. RandomSearch
-outer_cv = inner_cv(RandomSearch)(
+inner_cv = inner_cv(RandomSearch)(
     hypermodel,
     # You can use any class extendind:
     # sklearn.model_selection.cros.BaseCrossValidator
@@ -62,6 +64,18 @@ outer_cv = inner_cv(RandomSearch)(
     # scores.
     restore_best=True,
     # Tuner named parameters except hypermodel
+    preprocessor=None,
+    # Can ba one of:
+    #    - keras.layers.TextVectorization
+    #    - keras.layers.Normalization
+    #    - keras.layers.StringLookup
+    #    - keras.layers.IntegerLookup
+    #    - keras.layers.Discretization
+    # or any instance of a classes from sklearn.preprocessing 
+    # in which the fit and transform methods are implemented.
+    # if model has multi input preprocessor must be list of preprocessors
+    eval_batch_size=None
+    # batch size that will be used to validate the model on the test fold
     ...
 )
 ```
