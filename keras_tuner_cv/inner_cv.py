@@ -50,6 +50,7 @@ def inner_cv(
             self._verbose = True
             self._preprocessor = preprocessor
             self._eval_batch_size = eval_batch_size
+            self._multiple_input = None
 
         def search(self, *fit_args, **fit_kwargs):
             if "verbose" in fit_kwargs:
@@ -104,7 +105,7 @@ def inner_cv(
             return preprocessor.transform(x)
 
         def _prepare_data(self, x, idx, fit_transorm):
-            if isinstance(x, list):
+            if self._multiple_input:
                 x_new = [i[idx] for i in x]
                 if self._preprocessor is not None:
                     x_new = [self.preprocess_data(x_new[i], self._preprocessor[i], fit_transorm) for i in
@@ -120,6 +121,7 @@ def inner_cv(
             X = args[0]
             Y = args[1]
             if isinstance(X, list):
+                self._multiple_input = True
                 n_sample = len(X[0])
             else:
                 n_sample = len(X)
@@ -152,11 +154,11 @@ def inner_cv(
                     copied_args[1] = y_train
                     copied_args = tuple(arg for arg in copied_args)
                     # If requested it sets full batch for training
-                    # if "batch_size" in kwargs and (
-                    #         kwargs["batch_size"] == "full-batch"
-                    #         or kwargs["batch_size"] > len(x_train)
-                    # ):
-                    #     copied_kwargs["batch_size"] = len(x_train)
+                    if "batch_size" in kwargs and (
+                            kwargs["batch_size"] == "full-batch"
+                            or kwargs["batch_size"] > n_sample
+                    ):
+                        copied_kwargs["batch_size"] = n_sample
 
                     # Get the validation set
                     x_test = self._prepare_data(X, test_index, False)
@@ -164,11 +166,11 @@ def inner_cv(
                     # Set the validation set
                     copied_kwargs["validation_data"] = [x_test, y_test]
                     # If requested it sets full batch for validation
-                    # if "validation_batch_size" in kwargs and (
-                    #         kwargs["validation_batch_size"] == "full-batch"
-                    #         or kwargs["validation_batch_size"] > len(x_test)
-                    # ):
-                    #     copied_kwargs["validation_batch_size"] = len(x_test)
+                    if "validation_batch_size" in kwargs and (
+                            kwargs["validation_batch_size"] == "full-batch"
+                            or kwargs["validation_batch_size"] > n_sample
+                    ):
+                        copied_kwargs["validation_batch_size"] = n_sample
 
                     # -------------------------------------------------------
                     # Callbacks
@@ -327,7 +329,7 @@ def inner_cv(
         def __save_output(self, model, x, filename):
             y = model.predict(
                 x,
-                batch_size=len(x),
+                batch_size=self._eval_batch_size,
                 verbose=self._display.verbose,
             )
             with open(
