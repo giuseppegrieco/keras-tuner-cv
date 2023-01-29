@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="keras_tuner_cv",
-    version="1.4.1",
+    version="1.5.1",
     description="Extension for keras tuner that adds a set of classes to implement cross validation techniques.",
     license="GPL v3",
     long_description=long_description,
@@ -17,5 +17,7 @@ setup(
     url="https://github.com/giuseppegrieco/keras-tuner-cv",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["keras_tuner"],
+    install_requires=[
+        "keras_tuner <= 1.1.3",
+    ],
 )

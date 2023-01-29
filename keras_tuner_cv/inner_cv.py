@@ -124,6 +124,7 @@ def inner_cv(
                 self._multiple_input = True
                 n_sample = len(X[0])
             else:
+                self._multiple_input = False
                 n_sample = len(X)
             # Run the training process multiple times.
             histories = []
