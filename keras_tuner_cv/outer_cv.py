@@ -14,12 +14,12 @@ from multiprocessing import Process
 
 class OuterCV:
     def __init__(
-        self,
-        outer_cv: BaseCrossValidator,
-        tuner_class,
-        *args,
-        multiprocess=False,
-        **kwargs,
+            self,
+            outer_cv: BaseCrossValidator,
+            tuner_class,
+            *args,
+            multiprocess=False,
+            **kwargs,
     ):
         """OuterCV constructor.
 
@@ -65,7 +65,7 @@ class OuterCV:
             if self._verbose:
                 tf.get_logger().info(
                     "\n" + "-" * 30 + "\n"
-                    f"[Search] Outer Cross-Validation {split + 1}/{self._outer_cv.get_n_splits()}"
+                                      f"[Search] Outer Cross-Validation {split + 1}/{self._outer_cv.get_n_splits()}"
                     + "\n"
                     + "-" * 30
                     + "\n"
@@ -103,7 +103,7 @@ class OuterCV:
             if self._verbose:
                 tf.get_logger().info(
                     "\n" + "-" * 30 + "\n"
-                    f"[Evaluate] Outer Cross-Validation {split + 1}/{self._outer_cv.get_n_splits()}"
+                                      f"[Evaluate] Outer Cross-Validation {split + 1}/{self._outer_cv.get_n_splits()}"
                     + "\n"
                     + "-" * 30
                     + "\n"
@@ -174,7 +174,8 @@ class OuterCV:
             results.append(self._tuners[i].get_best_hyperparameters(num_trials=1)[0])
         return results
 
-    def _evaluate(self, model, x, y, prefix=""):
+    @staticmethod
+    def _evaluate(model, x, y, prefix=""):
         evaluation = model.evaluate(x, y, batch_size=len(x), return_dict=True)
         return {prefix + str(key): val for key, val in evaluation.items()}
 
@@ -191,8 +192,8 @@ class OuterCV:
             )
             copied_kwargs["validation_data"] = (x_val, y_val)
             if (
-                "validation_batch_size" in kwargs
-                and kwargs.get("validation_batch_size") == "full-batch"
+                    "validation_batch_size" in kwargs
+                    and kwargs.get("validation_batch_size") == "full-batch"
             ):
                 copied_kwargs["validation_batch_size"] = len(x_val)
 

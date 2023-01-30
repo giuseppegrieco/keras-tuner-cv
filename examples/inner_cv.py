@@ -53,8 +53,8 @@ tuner.search(
     x_train,
     y_train,
     validation_split=0.2,
-    batch_size="full-batch",
-    validation_batch_size="full-batch",
+    batch_size=32,
+    validation_batch_size=32,
     epochs=2,
     verbose=True,
 )

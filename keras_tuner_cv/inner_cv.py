@@ -188,11 +188,8 @@ def inner_cv(
                     callbacks.append(
                         tuner_utils.SaveBestEpoch(
                             objective=self.oracle.objective,
-                            filepath=self._get_checkpoint_fname(trial.trial_id)
-                                     + "_"
-                                     + str(execution)
-                                     + "_"
-                                     + str(split),
+                            filepath=self._get_checkpoint_fname(trial.trial_id) + "_" + str(execution) + "_" + str(
+                                split),
                         )
                     )
                     copied_kwargs["callbacks"] = callbacks
@@ -206,12 +203,8 @@ def inner_cv(
                         # Load the best epoch according to objective function
                         model = self._try_build(trial.hyperparameters)
                         model.load_weights(
-                            self._get_checkpoint_fname(trial.trial_id)
-                            + "_"
-                            + str(execution)
-                            + "_"
-                            + str(split)
-                        ).expect_partial()
+                            self._get_checkpoint_fname(trial.trial_id) + "_" + str(execution) + "_"
+                            + str(split)).expect_partial()
 
                     trial_path = self.get_trial_dir(trial.trial_id)
                     # Save the history if requested
@@ -241,10 +234,10 @@ def inner_cv(
 
                     # Evaluate train performance on best epoch
                     tf.get_logger().info(
-                        "\n" + "-" * 40 + "\n"
+                        "\n" + "-" * 45 + "\n"
                                           "Evaluate train performance on best epoch"
                         + "\n"
-                        + "-" * 40
+                        + "-" * 45
                         + "\n"
                     )
                     obj_value = model.evaluate(
@@ -281,7 +274,8 @@ def inner_cv(
             # scores across the folds.
             return histories
 
-        def __get_filename_path(self, trial_path, name, ext, execution, split):
+        @staticmethod
+        def __get_filename_path(trial_path, name, ext, execution, split):
             return os.path.join(
                 trial_path,
                 name + "_" + str(execution) + "_" + str(split) + ext,
@@ -339,7 +333,8 @@ def inner_cv(
             ) as fp:
                 np.save(fp, y)
 
-        def __save_history(self, history, filename):
+        @staticmethod
+        def __save_history(history, filename):
             with open(
                     filename,
                     "w",

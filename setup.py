@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="keras_tuner_cv",
-    version="1.5.1",
+    version="1.5.2",
     description="Extension for keras tuner that adds a set of classes to implement cross validation techniques.",
     license="GPL v3",
     long_description=long_description,
@@ -19,5 +19,6 @@ setup(
     include_package_data=True,
     install_requires=[
         "keras_tuner <= 1.1.3",
+        "scikit-learn",
     ],
 )
