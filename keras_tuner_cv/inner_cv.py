@@ -112,7 +112,10 @@ def inner_cv(
                     copied_kwargs = copy.copy(kwargs)
 
                     # Get training set
-                    x_train = X[train_index]
+                    if isinstance(X, list):
+                        x_train = list(map(lambda i: np.take(i,train_index,axis=0),X))
+                    else:
+                        x_train = X[train_index]
                     y_train = Y[train_index]
                     # Set the training set
                     for arg in args:
@@ -128,7 +131,10 @@ def inner_cv(
                         copied_kwargs["batch_size"] = len(x_train)
 
                     # Get the validation set
-                    x_val = X[val_index]
+                    if isinstance(X, list):
+                        x_val = list(map(lambda i: np.take(i,val_index,axis=0),X))
+                    else:
+                        x_val = X[val_index]
                     y_val = Y[val_index]
                     # Set the validation set
                     copied_kwargs["validation_data"] = [x_val, y_val]
