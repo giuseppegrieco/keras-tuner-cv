@@ -436,14 +436,14 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
         hp = kt.HyperParameters()
         hp.values['factor1'] = f1
         hp.values['factor2'] = f2
-        for i,(train_index,test_index) in enumerate(self.cv.split(self.train)):
+        for i,(train_index,test_index) in enumerate(self.cv.split(self.train1)):
           train1_ = self.train1[train_index]
           train2_ = self.train2[train_index]
           test_ = self.train1[test_index]
           hypermodel = self.TestHyperModel(factor1=self.factor1,factor2=self.factor2)
           model = hypermodel.build(hp)
           model.fit(
-              [train1_,train2_]
+              [train1_,train2_],
               train1_,
               validation_split=self.validation_split,
               shuffle=self.shuffle,

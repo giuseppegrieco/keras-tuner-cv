@@ -92,12 +92,18 @@ def inner_cv(
             X = args[0]
             Y = args[1]
 
+            # get features to create splits
+            if isinstance(X,list):
+                X_ = X[0]
+            else:
+                X_ = X
+
             # Run the training process multiple times.
             histories = []
             for execution in range(self.executions_per_trial):
                 # Run the training over different splits.
                 for split, (train_index, val_index) in enumerate(
-                    self._inner_cv.split(X, Y)
+                    self._inner_cv.split(X_, Y)
                 ):
                     if self._verbose:
                         tf.get_logger().info(
