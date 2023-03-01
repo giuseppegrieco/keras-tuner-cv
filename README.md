@@ -10,10 +10,11 @@ $ pip install keras_tuner_cv
 
 ## Implemented methodologies
 Here is the list of implemented methodologies and how to use them!
+
 ### Outer Cross Validation
 
 ```python
-from keras_tuner_cv.outer_cv import OuterCV
+from keras_tuner_cv import OuterCV
 
 from keras_tuner.tuners import RandomSearch
 
@@ -32,9 +33,10 @@ outer_cv = OuterCV(
     ...
 )
 ```
+
 ### Inner Cross Validation
 ```python
-from keras_tuner_cv.outer_cv import OuterCV
+from keras_tuner_cv import inner_cv
 
 from keras_tuner.tuners import RandomSearch
 
@@ -44,10 +46,10 @@ cv = KFold(n_splits=5, random_state=12345, shuffle=True),
     
 # You can use any class extending:
 # keras_tuner.engine.tuner.Tuner, e.g. RandomSearch
-outer_cv = inner_cv(RandomSearch)(
+inner_cv = inner_cv(RandomSearch)(
     hypermodel,
-    # You can use any class extendind:
-    # sklearn.model_selection.cros.BaseCrossValidator
+    # You can use any class extending:
+    # sklearn.model_selection.cross.BaseCrossValidator
     cv,
     # Tuner positional parameters except hypermodel
     ...,
