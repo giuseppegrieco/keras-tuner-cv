@@ -218,6 +218,10 @@ def inner_cv(
                         )
 
                     # Evaluate train performance on best epoch
+                    if self._verbose:
+                        tf.get_logger().info(
+                            "\n\n" + f"Evaluate train performance"
+                        )
                     obj_value = model.evaluate(
                         x_train,
                         y_train,
@@ -227,6 +231,10 @@ def inner_cv(
                     )
 
                     # Evaluate validation performance on best epoch
+                    if self._verbose:
+                        tf.get_logger().info(
+                            "\n\n" + f"Evaluate val performance"
+                        )
                     val_res = model.evaluate(
                         x_val,
                         y_val,
