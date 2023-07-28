@@ -1,4 +1,4 @@
-from keras_tuner_cv.outer_cv import OuterCV
+from keras_tuner_cv import OuterCV
 
 from sklearn.model_selection import KFold
 from keras_tuner.tuners import RandomSearch
