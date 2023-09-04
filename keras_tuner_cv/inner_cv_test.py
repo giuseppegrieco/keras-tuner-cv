@@ -76,7 +76,7 @@ class TestInnerCvWithoutLearning(unittest.TestCase):
           val_loss = model.evaluate(x=test_,y=test_,batch_size=len(test_),verbose=False) # validation
           ref.append([f1,f2,i,loss,val_loss])
     ref = pd.DataFrame(ref,columns=['f1','f2','i','loss_ref','val_loss_ref'])
-    ref = ref.drop('i',axis=1).groupby(['f1','f2']).agg([pd.NamedAgg('mean',lambda x: np.mean(x)),pd.NamedAgg('std',lambda x: np.std(x,ddof=0))])
+    ref = ref.drop('i',axis=1).groupby(['f1','f2']).agg([pd.NamedAgg('mean',lambda x: np.mean(x)),pd.NamedAgg('std',lambda x: np.std(x,ddof=0))]) # NOQA
     self.ref_np = ref.reset_index().sort_values(['f1','f2']).to_numpy()
 
   def test_randomsearchvsgridsearch(self):
@@ -170,22 +170,25 @@ class TestInnerCvWithoutLearning(unittest.TestCase):
 
 class TestInnerCvMlpMnist(unittest.TestCase):
   """Tests for inner_cv() using a multilayer perceptron and MNIST-Data, testing against same HP optimizer without cv"""
-  
+
   class TestHyperModel(kt.HyperModel):
 
+    def __init__(self):
+        super().__init__()
+        self.prnginit = 42
+
     def build(self,hp):
-      # initialize PRNG
-      tf.random.set_seed(42)
+      tf.random.set_seed(self.prnginit)
       model = tf.keras.models.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28)),
         tf.keras.layers.Dense(
           hp.Int('units',min_value=10,max_value=160,step=50),
-          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=42),
+          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.prnginit),
           activation='relu'
         ),
         tf.keras.layers.Dense(
           10,
-          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=42)
+          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.prnginit)
         )
       ])
       model.compile(
@@ -194,14 +197,14 @@ class TestInnerCvMlpMnist(unittest.TestCase):
         metrics=['accuracy'],
       )
       return model
-  
-  
+
+
   def setUp(self):
     # MNIST data
     # 3 identical splits
     self.n_unique = 200
     mnist = tf.keras.datasets.mnist
-    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data() #NOQA
     x_train = x_train[:self.n_unique,:,:] / 255.0
     y_train = y_train[:self.n_unique]
     self.x_train3 = np.tile(x_train,(3,1,1))
@@ -210,7 +213,7 @@ class TestInnerCvMlpMnist(unittest.TestCase):
     self.y_train2 = np.tile(y_train,2)
     self.x_train1 = x_train
     self.y_train1 = y_train
-    # 
+    #
     self.project_name = 'test_ktcv'
     self.log_dir = './log_dir/'
     # fixed cross-validation splits
@@ -219,8 +222,8 @@ class TestInnerCvMlpMnist(unittest.TestCase):
     self.shuffle = False
     self.epochs = 3
     #
-    self.max_trials = 10 
-  
+    self.max_trials = 10
+
   def test_randomsearch(self):
     print('\n\n----- RandomSearch -----\n\n')
     # expected result
@@ -400,12 +403,12 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
         in2 = tf.keras.layers.Input(shape=(1))
         con = tf.keras.layers.concatenate([in1,in2])
         out = tf.keras.layers.Lambda(
-            lambda x,factor1,factor2: x*factor1*factor2,
+            lambda x,factor1,factor2: x[,1]*factor1*factor2,
             arguments={
                 'factor1' : hp.Choice('factor1',values=self.factor1),
                 'factor2' : hp.Choice('factor2',values=self.factor2)
             }
-        )(in1)
+        )(con)
         model = tf.keras.models.Model(inputs=[in1,in2],outputs=out)
         model.compile(loss='mae')
         return model
