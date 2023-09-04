@@ -47,11 +47,59 @@ def inner_cv(
             self._restore_best = restore_best
             self._verbose = True
 
+        # def search(self, *fit_args, **fit_kwargs):
+        #     if "verbose" in fit_kwargs:
+        #         self._verbose = fit_kwargs.get("verbose")
+        #     self.on_search_begin()
+        #     while True:
+        #         trial = self.oracle.create_trial(self.tuner_id)
+        #         if trial.status == trial_module.TrialStatus.STOPPED:
+        #             # Oracle triggered exit.
+        #             tf.get_logger().info("Oracle triggered exit")
+        #             break
+        #         if trial.status == trial_module.TrialStatus.IDLE:
+        #             # Oracle is calculating, resend request.
+        #             continue
+        # 
+        #         self.on_trial_begin(trial)
+        #         results = self.run_trial(trial, *fit_args, **fit_kwargs)
+        #         # `results` is None indicates user updated oracle in `run_trial()`.
+        #         if results is None:
+        #             warnings.warn(
+        #                 "`Tuner.run_trial()` returned None. It should return one of "
+        #                 "float, dict, keras.callbacks.History, or a list of one "
+        #                 "of these types. The use case of calling "
+        #                 "`Tuner.oracle.update_trial()` in `Tuner.run_trial()` is "
+        #                 "deprecated, and will be removed in the future.",
+        #                 DeprecationWarning,
+        #                 stacklevel=2,
+        #             )
+        #         else:
+        #             metrics = tuner_utils.convert_to_metrics_dict(
+        #                 results, self.oracle.objective
+        #             )
+        #             metrics.update(get_metrics_std_dict(results))
+        #             self.oracle.update_trial(
+        #                 trial.trial_id,
+        #                 metrics,
+        #             )
+        #         self.on_trial_end(trial)
+        #     self.on_search_end()
+        
         def search(self, *fit_args, **fit_kwargs):
+            """Performs a search for best hyperparameter configuations.
+    
+            Args:
+                *fit_args: Positional arguments that should be passed to
+                  `run_trial`, for example the training and validation data.
+                **fit_kwargs: Keyword arguments that should be passed to
+                  `run_trial`, for example the training and validation data.
+            """
             if "verbose" in fit_kwargs:
-                self._verbose = fit_kwargs.get("verbose")
+                self._display.verbose = fit_kwargs.get("verbose")
             self.on_search_begin()
             while True:
+                self.pre_create_trial()
                 trial = self.oracle.create_trial(self.tuner_id)
                 if trial.status == trial_module.TrialStatus.STOPPED:
                     # Oracle triggered exit.
@@ -60,31 +108,74 @@ def inner_cv(
                 if trial.status == trial_module.TrialStatus.IDLE:
                     # Oracle is calculating, resend request.
                     continue
-
+    
                 self.on_trial_begin(trial)
-                results = self.run_trial(trial, *fit_args, **fit_kwargs)
-                # `results` is None indicates user updated oracle in `run_trial()`.
-                if results is None:
-                    warnings.warn(
-                        "`Tuner.run_trial()` returned None. It should return one of "
-                        "float, dict, keras.callbacks.History, or a list of one "
-                        "of these types. The use case of calling "
-                        "`Tuner.oracle.update_trial()` in `Tuner.run_trial()` is "
-                        "deprecated, and will be removed in the future.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-                else:
-                    metrics = tuner_utils.convert_to_metrics_dict(
-                        results, self.oracle.objective
-                    )
-                    metrics.update(get_metrics_std_dict(results))
-                    self.oracle.update_trial(
-                        trial.trial_id,
-                        metrics,
-                    )
+                # like keras-tuner.BaseTuner v1.3.5
+                self._try_run_and_update_trial(trial, *fit_args, **fit_kwargs)
                 self.on_trial_end(trial)
             self.on_search_end()
+    
+        def _run_and_update_trial(self, trial, *fit_args, **fit_kwargs):
+            # adjusted to keras-tuner.BaseTuner v1.3.5
+            results = self.run_trial(trial, *fit_args, **fit_kwargs)
+            if self.oracle.get_trial(trial.trial_id).metrics.exists(
+                self.oracle.objective.name
+            ):
+                # The oracle is updated by calling `self.oracle.update_trial()` in
+                # `Tuner.run_trial()`. For backward compatibility, we support this
+                # use case. No further action needed in this case.
+                warnings.warn(
+                    "The use case of calling "
+                    "`self.oracle.update_trial(trial_id, metrics)` "
+                    "in `Tuner.run_trial()` to report the metrics is deprecated, "
+                    "and will be removed in the future."
+                    "Please remove the call and do 'return metrics' "
+                    "in `Tuner.run_trial()` instead. ",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                return
+    
+            tuner_utils.validate_trial_results(
+                results, self.oracle.objective, "Tuner.run_trial()"
+            ) #,
+            metrics = tuner_utils.convert_to_metrics_dict(
+                results, self.oracle.objective
+            )
+            metrics.update(get_metrics_std_dict(results))
+            self.oracle.update_trial(
+                trial.trial_id,
+                # # Convert to dictionary before calling `update_trial()`
+                # # to pass it from gRPC.
+                # tuner_utils.convert_to_metrics_dict(
+                #     results,
+                #     self.oracle.objective,
+                # ),
+                metrics,
+                step=tuner_utils.get_best_step(results, self.oracle.objective),
+            )
+
+        def _try_run_and_update_trial(self, trial, *fit_args, **fit_kwargs):
+            # like keras-tuner.BaseTuner v1.3.5
+            try:
+                self._run_and_update_trial(trial, *fit_args, **fit_kwargs)
+                trial.status = trial_module.TrialStatus.COMPLETED
+                return
+            except Exception as e:
+                if isinstance(e, errors.FatalError):
+                    raise e
+                if config_module.DEBUG:
+                    # Printing the stacktrace and the error.
+                    traceback.print_exc()
+    
+                if isinstance(e, errors.FailedTrialError):
+                    trial.status = trial_module.TrialStatus.FAILED
+                else:
+                    trial.status = trial_module.TrialStatus.INVALID
+    
+                # Include the stack traces in the message.
+                message = traceback.format_exc()
+                trial.message = message
 
         def run_trial(self, trial, *args, **kwargs):
             original_callbacks = kwargs.pop("callbacks", [])
@@ -218,6 +309,10 @@ def inner_cv(
                         )
 
                     # Evaluate train performance on best epoch
+                    if self._verbose:
+                        tf.get_logger().info(
+                            "\n\n" + f"Evaluate train performance"
+                        )
                     obj_value = model.evaluate(
                         x_train,
                         y_train,
@@ -227,6 +322,10 @@ def inner_cv(
                     )
 
                     # Evaluate validation performance on best epoch
+                    if self._verbose:
+                        tf.get_logger().info(
+                            "\n\n" + f"Evaluate val performance"
+                        )
                     val_res = model.evaluate(
                         x_val,
                         y_val,
