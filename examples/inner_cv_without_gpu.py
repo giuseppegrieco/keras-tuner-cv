@@ -17,8 +17,6 @@ except RuntimeError as e:
 
 
 # Test environment
-import tensorflow as tf
-
 tf.get_logger().setLevel("INFO")
 
 mnist = tf.keras.datasets.mnist
