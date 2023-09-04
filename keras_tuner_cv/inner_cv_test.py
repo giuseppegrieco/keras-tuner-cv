@@ -403,7 +403,7 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
         in2 = tf.keras.layers.Input(shape=(1))
         con = tf.keras.layers.concatenate([in1,in2])
         out = tf.keras.layers.Lambda(
-            lambda x,factor1,factor2: x[,1]*factor1*factor2,
+            lambda x,factor1,factor2: x[:,1]*factor1*factor2,
             arguments={
                 'factor1' : hp.Choice('factor1',values=self.factor1),
                 'factor2' : hp.Choice('factor2',values=self.factor2)
