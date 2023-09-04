@@ -76,7 +76,10 @@ class TestInnerCvWithoutLearning(unittest.TestCase):
           val_loss = model.evaluate(x=test_,y=test_,batch_size=len(test_),verbose=False) # validation
           ref.append([f1,f2,i,loss,val_loss])
     ref = pd.DataFrame(ref,columns=['f1','f2','i','loss_ref','val_loss_ref'])
-    ref = ref.drop('i',axis=1).groupby(['f1','f2']).agg([pd.NamedAgg('mean',lambda x: np.mean(x)),pd.NamedAgg('std',lambda x: np.std(x,ddof=0))]) # NOQA
+    ref = ref.drop('i',axis=1).groupby(['f1','f2']).agg([
+      pd.NamedAgg('mean',lambda x: np.mean(x)), # NOQA
+      pd.NamedAgg('std',lambda x: np.std(x,ddof=0)) # NOQA
+    ])
     self.ref_np = ref.reset_index().sort_values(['f1','f2']).to_numpy()
 
   def test_randomsearchvsgridsearch(self):
@@ -204,7 +207,7 @@ class TestInnerCvMlpMnist(unittest.TestCase):
     # 3 identical splits
     self.n_unique = 200
     mnist = tf.keras.datasets.mnist
-    (x_train, y_train), (x_test, y_test) = mnist.load_data() #NOQA
+    (x_train, y_train), (x_test, y_test) = mnist.load_data() # NOQA
     x_train = x_train[:self.n_unique,:,:] / 255.0
     y_train = y_train[:self.n_unique]
     self.x_train3 = np.tile(x_train,(3,1,1))
@@ -457,7 +460,10 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
           val_loss = model.evaluate(x=[test_,test_],y=test_,batch_size=len(test_),verbose=False) # validation
           ref.append([f1,f2,i,loss,val_loss])
     ref = pd.DataFrame(ref,columns=['f1','f2','i','loss_ref','val_loss_ref'])
-    ref = ref.drop('i',axis=1).groupby(['f1','f2']).agg([pd.NamedAgg('mean',lambda x: np.mean(x)),pd.NamedAgg('std',lambda x: np.std(x,ddof=0))])
+    ref = ref.drop('i',axis=1).groupby(['f1','f2']).agg([
+      pd.NamedAgg('mean',lambda x: np.mean(x)), # NOQA
+      pd.NamedAgg('std',lambda x: np.std(x,ddof=0)) # NOQA
+    ])
     self.ref_np = ref.reset_index().sort_values(['f1','f2']).to_numpy()
 
   def test_randomsearchvsgridsearch(self):
