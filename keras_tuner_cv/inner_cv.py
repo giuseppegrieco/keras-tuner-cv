@@ -346,7 +346,8 @@ def inner_cv(
 
         def _build_and_fit_model(self, trial, execution, split, *args, **kwargs):
             # hide execution and split in dictionary with hp
-            hp_plus = {'hp': trial.hyperparameters, 'execution': execution, 'split': split}
+            hp = trial.hyperparameters
+            hp_plus = {'hp': hp, 'execution': execution, 'split': split}
             model = self._try_build(hp_plus)
             results = self.hypermodel.fit(hp, model, *args, **kwargs)
             tuner_utils.validate_trial_results(
@@ -356,17 +357,20 @@ def inner_cv(
         
         def _build_hypermodel(self, hp_plus):
             hp = hp_plus['hp']
-            model = super()._build_hypermodel(hp)
-            if isinstance(self._inner_cv, Hyperband) and "tuner/trial_id" in hp.values:
-                trial_id = hp.values["tuner/trial_id"]
-                # Load best checkpoint from this trial, execution and split for further hyperband rounds.
-                model.load_weights(
-                    self._get_checkpoint_fname(trial_id)
-                    + "_"
-                    + str(hp_plus['execution'])
-                    + "_"
-                    + str(hp_plus['split'])
-                )
+            if isinstance(self, Hyperband):
+                model = super(Hyperband, self)._build_hypermodel(hp)
+                if "tuner/trial_id" in hp.values:
+                    trial_id = hp.values["tuner/trial_id"]
+                    # Load best checkpoint from this trial, execution and split for further hyperband rounds.
+                    model.load_weights(
+                        self._get_checkpoint_fname(trial_id)
+                        + "_"
+                        + str(hp_plus['execution'])
+                        + "_"
+                        + str(hp_plus['split'])
+                    )
+            else:
+                model = super()._build_hypermodel(hp)
             return model
             
 
