@@ -82,7 +82,7 @@ class TestInnerCvWithoutLearning(unittest.TestCase):
     ])
     self.ref_np = ref.reset_index().sort_values(['f1','f2']).to_numpy()
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_randomsearchvsgridsearch(self):
     print('\n\n----- RandomSearch vs GridSearch -----\n\n')
     # result of keras_tuner_cv.inner_cv
@@ -112,7 +112,7 @@ class TestInnerCvWithoutLearning(unittest.TestCase):
     ktcv_np = ktcv.drop_duplicates().sort_values(['factor1','factor2'])[['factor1','factor2','loss','loss_std','val_loss','val_loss_std']].to_numpy()
     self.assertTrue(np.all(self.ref_np == ktcv_np))
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_bayesianoptimizationvsgridsearch(self):
     print('\n\n----- BayesianOptimization vs GridSearch -----\n\n')
     # result of keras_tuner_cv.inner_cv
@@ -143,7 +143,7 @@ class TestInnerCvWithoutLearning(unittest.TestCase):
     ktcv_np = ktcv.drop_duplicates().sort_values(['factor1','factor2'])[['factor1','factor2','loss','loss_std','val_loss','val_loss_std']].to_numpy()
     self.assertTrue(np.all(self.ref_np == ktcv_np))
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_hyperbandvsgridsearch(self):
     print('\n\n----- Hyperband vs GridSearch -----\n\n')
     # result of keras_tuner_cv.inner_cv
@@ -230,7 +230,7 @@ class TestInnerCvMlpMnist(unittest.TestCase):
     #
     self.max_trials = 10
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_randomsearch(self):
     print('\n\n----- RandomSearch -----\n\n')
     # expected result
@@ -285,7 +285,7 @@ class TestInnerCvMlpMnist(unittest.TestCase):
     # comparison assuming same result of HPO
     self.assertTrue(np.all(ref_np == ktcv_np))
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_bayesianoptimization(self):
     print('\n\n----- Bayesian Optimization -----\n\n')
     # expected result
@@ -342,7 +342,7 @@ class TestInnerCvMlpMnist(unittest.TestCase):
     # comparison assuming same result of HPO
     self.assertTrue(np.all(ref_np == ktcv_np))
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_hyperband(self):
     print('\n\n----- Hyperband -----\n\n')
     # expected result
@@ -573,31 +573,31 @@ class TestInnerCvMlpMnistLong(unittest.TestCase):
   def test_hyperband_long(self):
     print('\n\n----- Hyperband -----\n\n')
     # expected result
-#    tuner = kt.Hyperband(
-#      hypermodel=self.TestHyperModel(),
-#      objective='val_accuracy',
-#      max_epochs=50,
-#      factor=5,
-#      project_name=self.project_name,
-#      directory=self.log_dir,
-#      overwrite=True,
-#      seed=42
-#    )
-#    tuner.search(
-#      self.x_train2,
-#      self.y_train2,
-#      validation_data=[self.x_train1,self.y_train1],
-#      validation_batch_size=self.n_unique, # as in keras_tuner_cv
-#      shuffle=self.shuffle,
-#      epochs=self.epochs,
-#      verbose=True
-#    )
-#    ref_hp = tuner.get_best_hyperparameters(num_trials=self.max_trials)
-#    ref = []
-#    for r in ref_hp:
-#      ref.append(r.values)
-#    ref = pd.DataFrame(ref)
-#    ref_np = ref[['units']].drop_duplicates().to_numpy()
+    tuner = kt.Hyperband(
+      hypermodel=self.TestHyperModel(),
+      objective='val_accuracy',
+      max_epochs=50,
+      factor=5,
+      project_name=self.project_name,
+      directory=self.log_dir,
+      overwrite=True,
+      seed=42
+    )
+    tuner.search(
+      self.x_train2,
+      self.y_train2,
+      validation_data=[self.x_train1,self.y_train1],
+      validation_batch_size=self.n_unique, # as in keras_tuner_cv
+      shuffle=self.shuffle,
+      epochs=self.epochs,
+      verbose=True
+    )
+    ref_hp = tuner.get_best_hyperparameters(num_trials=self.max_trials)
+    ref = []
+    for r in ref_hp:
+      ref.append(r.values)
+    ref = pd.DataFrame(ref)
+    ref_np = ref[['units']].drop_duplicates().to_numpy()
     # result of keras_tuner_cv.inner_cv
     tuner = inner_cv(kt.tuners.Hyperband)(
       hypermodel=self.TestHyperModel(),
@@ -624,8 +624,8 @@ class TestInnerCvMlpMnistLong(unittest.TestCase):
     ktcv = pd_inner_cv_get_result(tuner,self.max_trials)
     ktcv_np = ktcv[['units']].drop_duplicates().to_numpy()
     self.assertTrue(True)
-#    # comparison assuming same result of HPO
-#    self.assertTrue(np.all(ref_np == ktcv_np))
+    # comparison assuming same result of HPO
+    self.assertTrue(np.all(ref_np == ktcv_np))
 
 
 
@@ -704,7 +704,7 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
     ])
     self.ref_np = ref.reset_index().sort_values(['f1','f2']).to_numpy()
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_randomsearchvsgridsearch(self):
     print('\n\n----- RandomSearch vs GridSearch -----\n\n')
     # result of keras_tuner_cv.inner_cv
@@ -734,7 +734,7 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
     ktcv_np = ktcv.drop_duplicates().sort_values(['factor1','factor2'])[['factor1','factor2','loss','loss_std','val_loss','val_loss_std']].to_numpy()
     self.assertTrue(np.all(self.ref_np == ktcv_np))
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_bayesianoptimizationvsgridsearch(self):
     print('\n\n----- BayesianOptimization vs GridSearch -----\n\n')
     # result of keras_tuner_cv.inner_cv
@@ -765,7 +765,7 @@ class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
     ktcv_np = ktcv.drop_duplicates().sort_values(['factor1','factor2'])[['factor1','factor2','loss','loss_std','val_loss','val_loss_std']].to_numpy()
     self.assertTrue(np.all(self.ref_np == ktcv_np))
 
-  @unittest.skip("while developing")
+  #@unittest.skip("while developing")
   def test_hyperbandvsgridsearch(self):
     print('\n\n----- Hyperband vs GridSearch -----\n\n')
     # result of keras_tuner_cv.inner_cv
