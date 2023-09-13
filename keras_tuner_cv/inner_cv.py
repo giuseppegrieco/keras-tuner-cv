@@ -232,7 +232,11 @@ def inner_cv(
 
                     if self._restore_best:
                         # Load the best epoch according to objective function
-                        model = self._try_build(trial.hyperparameters)
+                        model = self._build_hypermodel({
+                          'hp': trial.hyperparameters,
+                          'execution': execution,
+                          'split': split
+                        })
                         model.load_weights(
                             self._get_checkpoint_fname(trial.trial_id)
                             + "_"
@@ -356,6 +360,12 @@ def inner_cv(
             return results, model
         
         def _build_hypermodel(self, hp_plus):
+            if not isinstance(hp_plus, dict):
+                raise errors.FatalTypeError(
+                    "InnerCV._build_hypermodel() expected a dict "
+                    "with keys: hp, execution, split. "
+                    f"Received type {type(hp_plus)}."
+                ) 
             hp = hp_plus['hp']
             if isinstance(self, Hyperband):
                 model = super(Hyperband, self)._build_hypermodel(hp)
@@ -368,7 +378,7 @@ def inner_cv(
                         + str(hp_plus['execution'])
                         + "_"
                         + str(hp_plus['split'])
-                    )
+                    ).expect_partial()
             else:
                 model = super()._build_hypermodel(hp)
             return model
