@@ -358,17 +358,18 @@ def inner_cv(
                 results, self.oracle.objective, "HyperModel.fit()"
             )
             return results, model
-        
+
         def _build_hypermodel(self, hp_plus):
             if not isinstance(hp_plus, dict):
                 raise errors.FatalTypeError(
                     "InnerCV._build_hypermodel() expected a dict "
                     "with keys: hp, execution, split. "
                     f"Received type {type(hp_plus)}."
-                ) 
+                )
             hp = hp_plus['hp']
             if isinstance(self, Hyperband):
-                model = super(Hyperband, self)._build_hypermodel(hp)
+#                model = super(Hyperband, self)._build_hypermodel(hp)
+                model = Tuner._build_hypermodel(self,hp)
                 if "tuner/trial_id" in hp.values:
                     trial_id = hp.values["tuner/trial_id"]
                     # Load best checkpoint from this trial, execution and split for further hyperband rounds.
