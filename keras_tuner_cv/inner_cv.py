@@ -368,8 +368,7 @@ def inner_cv(
                 )
             hp = hp_plus['hp']
             if isinstance(self, Hyperband):
-#                model = super(Hyperband, self)._build_hypermodel(hp)
-                model = Tuner._build_hypermodel(self,hp)
+                model = Tuner._build_hypermodel(self,hp) # not Hyperband._build_hypermodel() - it would not find the weights
                 if "tuner/trial_id" in hp.values:
                     trial_id = hp.values["tuner/trial_id"]
                     # Load best checkpoint from this trial, execution and split for further hyperband rounds.
@@ -383,7 +382,6 @@ def inner_cv(
             else:
                 model = super()._build_hypermodel(hp)
             return model
-            
 
         def __save_output(self, model, x, filename):
             y = model.predict(
