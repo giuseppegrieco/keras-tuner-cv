@@ -391,6 +391,147 @@ class TestInnerCvMlpMnist(unittest.TestCase):
 
 
 
+class TestInnerCvSmokes(unittest.TestCase):
+  """Smoke tests for inner_cv() using a multilayer perceptron and MNIST-Data and a bigger search space"""
+
+  class TestHyperModel(kt.HyperModel):
+
+    def __init__(self):
+        super().__init__()
+        self.prnginit = 42
+
+    def build(self,hp):
+      tf.random.set_seed(self.prnginit)
+      model = tf.keras.models.Sequential([
+        tf.keras.layers.Flatten(input_shape=(28, 28)),
+        tf.keras.layers.Dense(
+          hp.Int('units',min_value=10,max_value=160,step=50),
+          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.prnginit),
+          activation='relu'
+        ),
+        tf.keras.layers.Dense(
+          hp.Int('units2',min_value=10,max_value=160,step=1),
+          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.prnginit),
+          activation='relu'
+        ),
+        tf.keras.layers.Dense(
+          10,
+          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=self.prnginit)
+        )
+      ])
+      model.compile(
+        optimizer='adam',
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=['accuracy'],
+      )
+      return model
+
+
+  def setUp(self):
+    # MNIST data
+    self.n_unique = 500
+    mnist = tf.keras.datasets.mnist.load_data()
+    (x_train, y_train) = mnist[0]
+    self.x_train = x_train[:self.n_unique,:,:] / 255.0
+    self.y_train = y_train[:self.n_unique]
+    (x_test, y_test) = mnist[1]
+    self.x_test = x_test[:100,:,:] / 255.0
+    self.y_test = y_test[:100]
+    #
+    self.project_name = 'test_ktcv'
+    self.log_dir = './log_dir/'
+    # simple cross-validation splits
+    self.cv = KFold(n_splits=5,random_state=None,shuffle=False)
+    # parameters for fitting the model
+    self.shuffle = False
+    self.epochs = 3
+    #
+    self.max_trials = 10
+
+  def test_randomsearch_smoke(self):
+    print('\n\n----- RandomSearch smoke test -----\n\n')
+    tuner = inner_cv(kt.tuners.RandomSearch)(
+      hypermodel=self.TestHyperModel(),
+      inner_cv=self.cv,
+      save_output=False,
+      save_history=False,
+      restore_best=True,
+      objective='val_accuracy',
+      project_name=self.project_name,
+      directory=self.log_dir,
+      seed=42,
+      overwrite=True,
+      max_trials=self.max_trials
+    )
+    tuner.search(
+      self.x_train,
+      self.y_train,
+      validation_data=[self.x_test,self.y_test],
+      shuffle=self.shuffle,
+      epochs=self.epochs,
+      verbose=False
+    )
+    ktcv = pd_inner_cv_get_result(tuner,self.max_trials)
+    print(ktcv)
+    self.assertTrue(True)
+
+  def test_bayesianoptimization_smoke(self):
+    print('\n\n----- Bayesian Optimization smoke test -----\n\n')
+    tuner = inner_cv(kt.tuners.BayesianOptimization)(
+      hypermodel=self.TestHyperModel(),
+      inner_cv=self.cv,
+      save_output=False,
+      save_history=False,
+      restore_best=True,
+      objective='val_accuracy',
+      project_name=self.project_name,
+      directory=self.log_dir,
+      seed=42,
+      overwrite=True,
+      max_trials=self.max_trials
+    )
+    tuner.search(
+      self.x_train,
+      self.y_train,
+      validation_data=[self.x_test,self.y_test],
+      shuffle=self.shuffle,
+      epochs=self.epochs,
+      verbose=False
+    )
+    ktcv = pd_inner_cv_get_result(tuner,self.max_trials)
+    print(ktcv)
+    self.assertTrue(True)
+
+  def test_hyperband_smoke(self):
+    print('\n\n----- Hyperband smoke test -----\n\n')
+    tuner = inner_cv(kt.tuners.Hyperband)(
+      hypermodel=self.TestHyperModel(),
+      inner_cv=self.cv,
+      save_output=False,
+      save_history=False,
+      restore_best=True,
+      objective='val_accuracy',
+      max_epochs=80,
+      factor=5,
+      project_name=self.project_name,
+      directory=self.log_dir,
+      seed=42,
+      overwrite=True
+    )
+    tuner.search(
+      self.x_train,
+      self.y_train,
+      validation_data=[self.x_test,self.y_test],
+      shuffle=self.shuffle,
+      epochs=self.epochs,
+      verbose=False
+    )
+    ktcv = pd_inner_cv_get_result(tuner,self.max_trials)
+    print(ktcv)
+    self.assertTrue(True)
+
+
+
 class TestInnerCvMultipleInputsWithoutLearning(unittest.TestCase):
   """Tests for inner_cv() using a model with multiple inputs without learning"""
 

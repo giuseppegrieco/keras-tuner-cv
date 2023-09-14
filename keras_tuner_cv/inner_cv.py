@@ -15,6 +15,7 @@ from keras_tuner import errors
 from keras_tuner.engine.tuner import Tuner, maybe_distribute
 from keras_tuner.engine import tuner_utils
 from keras_tuner.engine import trial as trial_module
+from keras_tuner.tuners.hyperband import Hyperband
 
 from keras_tuner_cv.utils import get_metrics_std_dict
 
@@ -226,12 +227,16 @@ def inner_cv(
 
                     # Build and train the model
                     history, model = self._build_and_fit_model(
-                        trial, *copied_args, **copied_kwargs
+                        trial, execution, split, *copied_args, **copied_kwargs
                     )
 
                     if self._restore_best:
                         # Load the best epoch according to objective function
-                        model = self._try_build(trial.hyperparameters)
+                        model = self._build_hypermodel({
+                          'hp': trial.hyperparameters,
+                          'execution': execution,
+                          'split': split
+                        })
                         model.load_weights(
                             self._get_checkpoint_fname(trial.trial_id)
                             + "_"
@@ -343,10 +348,41 @@ def inner_cv(
                 outputs.append(executions if len(executions) > 1 else executions[0])
             return outputs
 
-        def _build_and_fit_model(self, trial, *args, **kwargs):
+        def _build_and_fit_model(self, trial, execution, split, *args, **kwargs):
+            # hide execution and split in dictionary with hp
             hp = trial.hyperparameters
-            model = self._try_build(hp)
-            return self.hypermodel.fit(hp, model, *args, **kwargs), model
+            hp_plus = {'hp': hp, 'execution': execution, 'split': split}
+            model = self._try_build(hp_plus)
+            results = self.hypermodel.fit(hp, model, *args, **kwargs)
+            tuner_utils.validate_trial_results(
+                results, self.oracle.objective, "HyperModel.fit()"
+            )
+            return results, model
+        
+        def _build_hypermodel(self, hp_plus):
+            if not isinstance(hp_plus, dict):
+                raise errors.FatalTypeError(
+                    "InnerCV._build_hypermodel() expected a dict "
+                    "with keys: hp, execution, split. "
+                    f"Received type {type(hp_plus)}."
+                ) 
+            hp = hp_plus['hp']
+            if isinstance(self, Hyperband):
+                model = super(Hyperband, self)._build_hypermodel(hp)
+                if "tuner/trial_id" in hp.values:
+                    trial_id = hp.values["tuner/trial_id"]
+                    # Load best checkpoint from this trial, execution and split for further hyperband rounds.
+                    model.load_weights(
+                        self._get_checkpoint_fname(trial_id)
+                        + "_"
+                        + str(hp_plus['execution'])
+                        + "_"
+                        + str(hp_plus['split'])
+                    ).expect_partial()
+            else:
+                model = super()._build_hypermodel(hp)
+            return model
+            
 
         def __save_output(self, model, x, filename):
             y = model.predict(
