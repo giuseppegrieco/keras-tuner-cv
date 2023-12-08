@@ -3,6 +3,7 @@ import warnings
 import traceback
 import os
 import json
+import gc
 
 import tensorflow as tf
 
@@ -302,6 +303,12 @@ def inner_cv(
 
                     # Append training and validation scores to the histories
                     histories.append(obj_value)
+                    
+                    # Clean up
+                    del model
+                    gc.collect()
+                    tf.keras.backend.clear_session()
+                    
             # It will returns an array of dictionary, note by default keras-tuner
             # will compute an average. This average is therefore the average of the
             # scores across the folds.
