@@ -303,7 +303,7 @@ def inner_cv(
 
                     # Append training and validation scores to the histories
                     histories.append(obj_value)
-                    
+
                     # Clean up
                     del model
                     gc.collect()
