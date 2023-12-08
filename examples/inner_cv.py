@@ -1,5 +1,5 @@
-from keras_tuner_cv.inner_cv import inner_cv
-from keras_tuner_cv.utils import pd_inner_cv_get_result
+from keras_tuner_cv import inner_cv
+from keras_tuner_cv import pd_inner_cv_get_result
 
 from sklearn.model_selection import KFold
 from keras_tuner.tuners import RandomSearch

@@ -1,12 +1,22 @@
-from keras_tuner_cv import OuterCV
+import tensorflow as tf
+
+from keras_tuner_cv import inner_cv
+from keras_tuner_cv import pd_inner_cv_get_result
 
 from sklearn.model_selection import KFold
 from keras_tuner.tuners import RandomSearch
 from keras_tuner import Objective
 
-# Test environment
-import tensorflow as tf
+try:
+  tf.config.set_visible_devices([], 'GPU')
+  visible_devices = tf.config.get_visible_devices()
+  for device in visible_devices:
+    assert device.device_type != 'GPU'
+except RuntimeError as e:
+  print(e)
 
+
+# Test environment
 tf.get_logger().setLevel("INFO")
 
 mnist = tf.keras.datasets.mnist
@@ -20,7 +30,7 @@ def build_model(hp):
         [
             tf.keras.layers.Flatten(input_shape=(28, 28)),
             tf.keras.layers.Dense(
-                hp.Int("units", min_value=128, max_value=256), activation="relu"
+                hp.Int("units", min_value=5, max_value=30), activation="relu"
             ),
             tf.keras.layers.Dropout(0.2),
             tf.keras.layers.Dense(10),
@@ -34,13 +44,14 @@ def build_model(hp):
     return model
 
 
-tuner = OuterCV(
-    KFold(n_splits=5, random_state=12345, shuffle=True),
-    RandomSearch,
+tuner = inner_cv(RandomSearch)(
     build_model,
+    KFold(n_splits=5, random_state=12345, shuffle=True),
+    save_output=True,
+    save_history=True,
     objective=Objective("val_accuracy", direction="max"),
     project_name="0",
-    directory="./out/outer-cv/",
+    directory="./out/inner-cv/",
     seed=12345,
     overwrite=False,
     max_trials=2,
@@ -56,13 +67,5 @@ tuner.search(
     verbose=True,
 )
 
-eval = tuner.evaluate(
-    x_train,
-    y_train,
-    validation_split=0.2,
-    batch_size="full-batch",
-    validation_batch_size="full-batch",
-    epochs=2,
-    verbose=True,
-)
-print(eval)
+df = pd_inner_cv_get_result(tuner)
+print(df.head())
