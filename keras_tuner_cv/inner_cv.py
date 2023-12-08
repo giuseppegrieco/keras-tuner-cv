@@ -308,7 +308,7 @@ def inner_cv(
                     del model
                     gc.collect()
                     tf.keras.backend.clear_session()
-                    
+
             # It will returns an array of dictionary, note by default keras-tuner
             # will compute an average. This average is therefore the average of the
             # scores across the folds.
